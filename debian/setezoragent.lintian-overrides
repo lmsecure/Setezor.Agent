@@ -1,0 +1,28 @@
+#python virtual environment
+setezoragent: arch-independent-package-contains-binary-or-object
+
+setezoragent: unstripped-binary-or-object
+
+setezoragent: package-installs-python-pycache-dir
+
+setezoragent: python3-script-but-no-python3-dep
+
+setezoragent: library-not-linked-against-libc
+
+setezoragent: missing-dependency-on-libc
+
+setezoragent: non-standard-toplevel-dir 
+
+setezoragent: file-in-usr-local
+
+setezoragent: file-in-unusual-dir
+
+setezoragent: interpreter-in-usr-local
+
+setezoragent: dir-in-usr-local
+
+setezoragent: privacy-breach-uses-embedded-file
+
+setezoragent: embedded-library
+
+setezoragent: shell-script-fails-syntax-check

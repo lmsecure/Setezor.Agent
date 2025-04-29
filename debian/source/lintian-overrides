@@ -1,0 +1,6 @@
+#internal js files
+setezoragent: source-is-missing
+
+setezoragent: privacy-breach-uses-embedded-file
+
+setezoragent: python3-depends-but-no-python3-helper

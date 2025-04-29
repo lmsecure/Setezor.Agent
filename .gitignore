@@ -1,0 +1,10 @@
+*.db
+venv
+__pycache__
+.vscode
+tmp_chain.py
+config.json
+.env*
+*.deb
+setezor.bin
+build.sh
