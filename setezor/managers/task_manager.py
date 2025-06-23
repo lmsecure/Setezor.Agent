@@ -93,12 +93,12 @@ class TaskManager(Observer):
             if close_connection:
                 background_tasks.add_task(HTTPManager.send_json,
                                           url=url,
-                                          data=json_data['data'])
+                                          data=json_data)
                 logger.debug(f"Redirected payload to {url}")
                 return {}
             else:
                 logger.debug(f"Redirected payload to {url}")
-                data, status = await HTTPManager.send_json(url=url, data=json_data['data'])
+                data, status = await HTTPManager.send_json(url=url, data=json_data) ####
                 return data
 
         signal = json_data.pop("signal", None)

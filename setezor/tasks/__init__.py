@@ -7,6 +7,7 @@ from .nmap_scan_task import NmapScanTask
 from .scapy_scan_task import ScapySniffTask
 from .masscan_scan_task import MasscanScanTask
 from .snmp_brute_community_string_task import SnmpBruteCommunityStringTask
+from .speed_test_task import SpeedTestClientTask, SpeedTestServerTask
 
 def get_task_by_class_name(name: str):
     model_class = globals().get(name)

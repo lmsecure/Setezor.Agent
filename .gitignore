@@ -8,3 +8,5 @@ config.json
 *.deb
 setezor.bin
 build.sh
+requirements-test.txt
+Dockerfile.test
