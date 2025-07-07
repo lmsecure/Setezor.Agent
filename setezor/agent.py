@@ -1,3 +1,8 @@
+import platform
+system = platform.system()
+if system == "Windows":
+    import asyncio
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 import atexit
 import sys
 import os
@@ -9,6 +14,7 @@ warnings.filterwarnings("ignore", category=CryptographyDeprecationWarning)
 import click
 import uvicorn
 from OpenSSL import crypto
+
 
 sys.path[0] = ''
 
@@ -53,11 +59,13 @@ def temp_ssl_files(cert_pem, key_pem):
 @click.group(chain=False, invoke_without_command=True)
 @click.option('-p', '--port', default=16662, type=int, show_default=True, help='Spy port')
 @click.option('-h', '--host', default="0.0.0.0", type=str, show_default=True, help='Spy host')
-def run_app(port: int, host: str):
+@click.option('-nat', '--nat', type=str, default=None, show_default=True, help='NAT')
+def run_app(nat: str, port: int, host: str):
     """Command starts web application"""
     from setezor.spy import Spy
     import setezor.managers.task_manager
-    app = Spy.create_app()
+    import setezor.managers.task_crawler
+    app = Spy.create_app(nat=nat)
     with temp_ssl_files(*generate_self_signed_cert()) as (cert_path, key_path):
         uvicorn.run(app=app, 
                     host=host, 

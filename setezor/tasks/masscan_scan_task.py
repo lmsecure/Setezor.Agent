@@ -1,9 +1,15 @@
+import asyncio
 import os
 import signal
 import psutil
 from .base_job import BaseJob
 from setezor.modules.masscan.executor import MasscanScanner
-from setezor.tools.ip_tools import get_ipv4, get_mac
+import platform
+system = platform.system()
+if system == "Linux":
+    from setezor.tools.ip_tools import get_ipv4, get_mac
+else:
+    from setezor.tools.ip_tools_windows import get_ipv4, get_mac
 
 
 class MasscanScanTask(BaseJob):
@@ -13,7 +19,6 @@ class MasscanScanTask(BaseJob):
         self.interface = interface
         self.interface_ip_id = interface_ip_id
         self.interface_addr = get_ipv4(self.interface)
-        self.interface_mac = get_mac(self.interface).upper()
         self.project_id = project_id
         self.agent_id = agent_id
         self.target = target
@@ -69,5 +74,15 @@ class MasscanScanTask(BaseJob):
     async def soft_stop(self):
         for process in psutil.process_iter():
             if process.ppid() == self.pid:
-                os.kill(process.pid, signal.SIGKILL)
-        os.kill(self.pid, signal.SIGKILL)
+                while True:
+                    try:
+                        os.kill(process.pid, signal.SIGINT)
+                    except ProcessLookupError:
+                        break
+                    await asyncio.sleep(0.5)
+        while True:
+            try:
+                os.kill(self.pid, signal.SIGINT)
+            except ProcessLookupError:
+                break
+            await asyncio.sleep(0.5)

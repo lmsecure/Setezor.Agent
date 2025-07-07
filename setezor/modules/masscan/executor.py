@@ -1,12 +1,7 @@
-import re
-from datetime import datetime
-from time import time
 from dataclasses import dataclass
 from typing import List, Type
-import aiofiles
 from subprocess import Popen, PIPE
-import re
-from asyncio import create_subprocess_shell as async_shell
+from setezor.tools.shell_tools import create_async_shell_subprocess
 from asyncio.subprocess import PIPE as asyncPIPE
 
 class SubrocessError(Exception):
@@ -23,21 +18,14 @@ class SubrocessError(Exception):
 def create_shell_subprocess(command: list):
     return Popen(command, stdin=PIPE, stdout=PIPE, stderr=PIPE, encoding='utf8', errors='backslashreplace')
 
-async def create_async_shell_subprocess(command: list):
+async def create_async_shell(command: list):
     execute_command = ' '.join(command)
     bad_symbols = set(";|&$>#")
     index_bad_symbol = next((i for i, c in enumerate(execute_command) if c in bad_symbols), -1)
     if index_bad_symbol != -1:
         raise ValueError("Invalid character in command")
-    return await async_shell(execute_command, stdin=asyncPIPE, stdout=asyncPIPE, stderr=asyncPIPE)
+    return await create_async_shell_subprocess(command)
 
-
-def check_superuser_previliges(password: str):
-    res, err = create_shell_subprocess('timeout 0.1 sudo -S -v'.split()).communicate(password)
-    if re.match(r'^\[sudo\] password for [^\n]+?$', err) or not err:
-        return True
-    else:
-        return False
 
 
 @dataclass
@@ -126,21 +114,11 @@ class ConsoleCommandExecutor:
         else:
             raise Exception(f'Command "{self.command}" have no arguments')
     
-    def sync_execute(self, extension: str='log'):
-        self.arguments.clear_empty_args()
-        execution_command = self.arguments.prepare_command(self.command)
-        start_time = time()
-        process = create_shell_subprocess(execution_command)
-        result, error = process.communicate()
-        code = process.returncode
-        # ToDo add save source data
-        # self.logger.debug('Finish async "%s" execution after %.2f seconds', self.command, time() - start_time)
-        return result, error, code
     
     async def async_execute(self, log_path: str=None, extension: str='log'):
         self.arguments.clear_empty_args()
         execution_command = self.arguments.prepare_command(self.command)
-        process = await create_async_shell_subprocess(execution_command)
+        process = await create_async_shell(execution_command)
         if self.task:
             self.task.pid = process.pid
         result, error = await process.communicate()
@@ -148,28 +126,6 @@ class ConsoleCommandExecutor:
         error = error.decode(encoding='utf8', errors='backslashreplace')
         code= process.returncode
         return result, error, code
-    
-    @classmethod
-    async def save_source_data(cls, path: str, source_data: str | bytes, command: str, extension: str='log') -> bool:
-        """Метод сохранения сырых логов инструмента
-
-        Args:
-            path (str): путь до папки сохранения
-            source_data (str): логи
-            command (str): команда сканирования. на основе нее формируется имя файла
-
-        Returns:
-            bool: _description_
-        """
-        full_path = f'{path}/{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {command.replace("/", "_")}.{extension}'
-        # cls.logger.info('Save scan_data to file by path "%s"', full_path)
-        try:
-            async with aiofiles.open(full_path, 'wb' if isinstance(source_data, bytes) else 'w') as f:
-                await f.write(source_data)
-            return True
-        except:
-            # cls.logger.error('Failed save source scan to path "%s" with error\n%s', full_path, traceback.format_exc())
-            raise Exception('Failed save source scan to path "%s"' % full_path)
 
 
 class MasscanScanner(ConsoleCommandExecutor):
@@ -213,14 +169,10 @@ class MasscanScanner(ConsoleCommandExecutor):
             if i.argument in list(extentions.keys()):
                 extention = extentions[i.argument]
         res, err, code = await super().async_execute(log_path, extension=extention)
+        if code == -2: # SIGINT
+            return res
         if code != 0:
             raise SubrocessError(res, err, code)
         # ToDo check errors
         return res
     
-    def sync_execute(self) -> str:
-        res, err, code = super().sync_execute()
-        if err or code != 0:
-            raise SubrocessError(res, err, code)
-        # ToDo check errors
-        return res

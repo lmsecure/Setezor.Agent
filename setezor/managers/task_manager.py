@@ -1,8 +1,10 @@
+import asyncio
 import os
 import base64
 from fastapi import BackgroundTasks
 import aiofiles
 import orjson
+from setezor.managers.health_check_manager import HealthCheck
 from setezor.managers.scheduler_manager import SchedulerManager
 from setezor.tasks.base_job import BaseJob
 from setezor.schemas.task import TaskPayload, \
@@ -10,7 +12,7 @@ from setezor.schemas.task import TaskPayload, \
 from setezor.tasks import get_task_by_class_name
 from setezor.spy import Spy
 from setezor.managers.agent_manager import AgentManager
-from setezor.managers.sender_manager import HTTPManager
+from setezor.tools.sender import HTTPManager
 from setezor.managers.cipher_manager import Cryptor
 from setezor.schemas.agent import BackWardData
 from setezor.settings import PATH_PREFIX
@@ -31,13 +33,32 @@ class TaskManager(Observer):
         if task_id in cls.tasks:
             return None
         project_id = payload.project_id
-        new_job: BaseJob = job_cls(
-            name=f"Task {task_id}",
-            scheduler=scheduler,
-            task_id=task_id,
-            project_id=project_id,
-            **payload.job_params
-        )
+        try:
+            new_job: BaseJob = job_cls(
+                name=f"Task {task_id}",
+                scheduler=scheduler,
+                task_id=task_id,
+                project_id=project_id,
+                **payload.job_params
+            )
+        except Exception as e:
+            task_status_data = {
+            "signal": "task_status",
+            "task_id": task_id,
+            "status": TaskStatus.failed,
+            "type": "error",
+            "traceback": "Failed to create task on agent"
+            }
+            await cls.notify(agent_id=payload.agent_id, data=task_status_data)
+            return
+        task_status_data = {
+            "signal": "task_status",
+            "task_id": task_id,
+            "status": TaskStatus.registered,
+            "type": "success",
+            "traceback": ""
+        }
+        await cls.notify(agent_id=payload.agent_id, data=task_status_data)
         job: BaseJob = await scheduler.spawn_job(new_job)
         cls.tasks[task_id] = job
         return task_id
@@ -46,7 +67,37 @@ class TaskManager(Observer):
     @classmethod  # метод агента на мягкое завершение таски
     async def soft_stop_task_on_agent(cls, id: str) -> str:
         task = cls.tasks.get(id)
-        await task.soft_stop()
+        if task:
+            await task.soft_stop()
+            task_status_data = {
+                "signal": "task_status",
+                "task_id": id,
+                "status": TaskStatus.stopped,
+                "type": "warning",
+                "traceback": ""
+            }
+            await cls.notify(
+                agent_id=task.agent_id,
+                data=task_status_data
+            )
+        return id
+    
+    @classmethod  # метод агента на дроп таски
+    async def cancel_task_on_agent(cls, id: str) -> str:
+        task = cls.tasks.get(id)
+        if task:
+            await task.close()
+            task_status_data = {
+                "signal": "task_status",
+                "task_id": id,
+                "status": TaskStatus.canceled,
+                "type": "warning",
+                "traceback": ""
+            }
+            await cls.notify(
+                agent_id=task.agent_id,
+                data=task_status_data
+            )
         return id
 
     @classmethod  # метод агента на создание шедулера
@@ -76,6 +127,8 @@ class TaskManager(Observer):
                 Spy.AGENT_ID = connection_payload.get("agent_id")
                 async with aiofiles.open(os.path.join(PATH_PREFIX, "config.json"), 'w') as file:
                     await file.write(orjson.dumps(connection_payload).decode())
+                loop = asyncio.get_running_loop()
+                loop.create_task(HealthCheck.periodic_health_check(agent_id=Spy.AGENT_ID, parent_agent_urls=Spy.PARENT_AGENT_URLS))
                 return {"status": "OK"}
             except Exception as e:
                 logger.error(str(e))
@@ -112,6 +165,10 @@ class TaskManager(Observer):
             case "soft_stop_task":
                 task_id = json_data.get("id")
                 await TaskManager.soft_stop_task_on_agent(id=task_id)
+                return {}
+            case "cancel_task":
+                task_id = json_data.get("id")
+                await TaskManager.cancel_task_on_agent(id=task_id)
                 return {}
             case _:
                 return {}

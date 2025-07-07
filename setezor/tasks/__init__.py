@@ -1,3 +1,4 @@
+import platform
 from setezor.tasks.base_job import BaseJob
 from .dns_task import DNSTask
 from .cert_task import CertTask
@@ -7,7 +8,11 @@ from .nmap_scan_task import NmapScanTask
 from .scapy_scan_task import ScapySniffTask
 from .masscan_scan_task import MasscanScanTask
 from .snmp_brute_community_string_task import SnmpBruteCommunityStringTask
-from .speed_test_task import SpeedTestClientTask, SpeedTestServerTask
+from .self_hosted_agent_interfaces_task import SelfHostedAgentInterfaces
+system = platform.system()
+if system == "Linux":
+    from .speed_test_task import SpeedTestClientTask, SpeedTestServerTask
+    from .firewall_checker_task import FirewallCheckerSenderTask, FirewallCheckerSnifferTask
 
 def get_task_by_class_name(name: str):
     model_class = globals().get(name)

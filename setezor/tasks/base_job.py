@@ -70,38 +70,6 @@ class BaseJob(Job):
             return result
         return wrapped
 
-    @staticmethod
-    def local_task_notifier(func):
-        async def wrapped(self, *args, **kwargs):
-            task_id = self.task_id
-            scan_id = self.scan_id
-            project_id = self.project_id
-            uow = self.uow
-            task_status_data = {
-                "signal": "task_status",
-                "task_id": task_id,
-                "status": TaskStatus.started,
-                "type": "success",
-                "traceback": ""
-            }
-            await self._scheduler.change_task_status_local(data=task_status_data, project_id=project_id, uow=uow)
-            logger.debug(f"STARTED TASK {func.__qualname__}. {task_status_data}")
-            try:
-                result = await func(self, *args, **kwargs)
-            except Exception as e:
-                task_status_data["status"] = TaskStatus.failed
-                task_status_data["traceback"] = str(e)
-                task_status_data["type"] = "error"
-                await self._scheduler.change_task_status_local(data=task_status_data, project_id=project_id, uow=uow)
-                logger.error(f"TASK {func.__qualname__} FAILED. {traceback.format_exc()}")
-                return
-            await self._scheduler.write_local_result(uow=self.uow,
-                                                     project_id=project_id,
-                                                     task_id=task_id,
-                                                     scan_id=scan_id,
-                                                     result=result)
-            return result
-        return wrapped
 
     async def _close(self, timeout):
         return await super()._close(timeout)

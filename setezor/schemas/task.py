@@ -4,12 +4,14 @@ from pydantic import BaseModel
 from pydantic.networks import IPv4Address, IPv4Network
 
 class TaskStatus:
-    pending = "PENDING"
     started = "STARTED"
-    in_queue = "IN QUEUE"
     finished = "FINISHED"
     failed = "FAILED"
     created = "CREATED"
+    pre_canceled = "PRE_CANCELED"
+    canceled = "CANCELED"
+    registered = "REGISTERED"
+    stopped = "STOPPED"
 
 
 class TaskSchema(BaseModel):

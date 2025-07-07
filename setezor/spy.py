@@ -1,9 +1,11 @@
+import asyncio
 import base64
+from contextlib import asynccontextmanager
 import json
 import os
 from typing import Any, Generic, Literal, Callable, ParamSpec, TypeVar
 import inspect
-
+import asyncio
 import orjson
 from setezor.settings import PATH_PREFIX
 from fastapi import FastAPI, Request, Response
@@ -48,6 +50,8 @@ class Spy:
     PARENT_AGENT_URLS: list[str] = []
     SECRET_KEY: str = ""
     AGENT_ID: str = None
+    TASK_CRAWLER = None
+    NAT: bool = False
     @classmethod
     def spy_func(cls, method: Literal['GET', 'POST'], endpoint: str) -> SpyMethod[_P, _Returns]:
         def wrapper(func: Callable[_P, _Returns]) -> SpyMethod[_P, _Returns]:
@@ -57,9 +61,29 @@ class Spy:
         return wrapper
     
     @classmethod
-    def create_app(cls) -> FastAPI:
+    def task_listener(cls, TASK_CRAWLER_FUNC):
+        cls.TASK_CRAWLER = TASK_CRAWLER_FUNC
+    
+    @asynccontextmanager
+    @staticmethod
+    async def lifespan(app: FastAPI):
+        from setezor.managers.health_check_manager import HealthCheck
+        loop = asyncio.get_running_loop()
+        if app.state.task_crawler and Spy.NAT:
+            loop.create_task(app.state.task_crawler())
+        if Spy.AGENT_ID:
+            loop.create_task(HealthCheck.periodic_health_check(agent_id=Spy.AGENT_ID, parent_agent_urls=Spy.PARENT_AGENT_URLS))
+        yield
+    
+    @classmethod
+    def create_app(cls, nat: str) -> FastAPI:
+        if nat is not None:
+            cls.NAT = True
+            if nat != "-":
+                cls.write_config(nat)
         cls.from_file()
-        app: FastAPI = FastAPI()
+        app: FastAPI = FastAPI(lifespan=cls.lifespan)
+        app.state.task_crawler = cls.TASK_CRAWLER
         for func in cls._funcs:
             app.add_api_route(
                 func.endpoint,
@@ -85,3 +109,10 @@ class Spy:
                 cls.load_config(raw_config)
         except (FileNotFoundError, KeyError, json.decoder.JSONDecodeError):
             logger.warning("Agent is not connected yet")
+
+    @classmethod
+    def write_config(cls, config: str):
+        with open(os.path.join(PATH_PREFIX, "config.json"), 'w') as f:
+            raw_config = base64.b64decode(config)
+            dict_config = orjson.loads(raw_config)
+            f.write(orjson.dumps(dict_config).decode())
