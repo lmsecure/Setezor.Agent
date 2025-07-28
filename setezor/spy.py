@@ -68,11 +68,13 @@ class Spy:
     @staticmethod
     async def lifespan(app: FastAPI):
         from setezor.managers.health_check_manager import HealthCheck
+        from setezor.managers.info_manager import InfoManager
         loop = asyncio.get_running_loop()
         if app.state.task_crawler and Spy.NAT:
             loop.create_task(app.state.task_crawler())
         if Spy.AGENT_ID:
-            loop.create_task(HealthCheck.periodic_health_check(agent_id=Spy.AGENT_ID, parent_agent_urls=Spy.PARENT_AGENT_URLS))
+            loop.create_task(HealthCheck.periodic_health_check())
+            await InfoManager.send_info()
         yield
     
     @classmethod

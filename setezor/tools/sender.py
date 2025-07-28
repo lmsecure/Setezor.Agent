@@ -37,6 +37,7 @@ class HTTPManager(SenderInterface):
                 async with session.post(url, json=data, ssl=False) as resp:
                     return await resp.json(), resp.status
             except (aiohttp.ClientConnectorError,
+                    aiohttp.ConnectionTimeoutError,
                     aiohttp.ContentTypeError,
                     aiohttp.InvalidURL):
                 return None, 400

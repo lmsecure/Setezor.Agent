@@ -1,4 +1,3 @@
-
 from typing import Optional
 from pydantic import BaseModel
 from pydantic.networks import IPv4Address, IPv4Network
@@ -28,7 +27,6 @@ class TaskSchemaAdd(BaseModel):
 
 class TaskSchemaEditStatus(BaseModel):
     status: str
-
 
 
 class TaskPayload(BaseModel):
@@ -97,18 +95,19 @@ class MasscanLogTaskPayload(BaseModel):
     mac: str
 
 class NmapScanTaskPayload(TaskPayloadWithScopeID):
-    targetIP: IPv4Network  | None = None #IPv4Address
+    targetIP: IPv4Network | None = None  # IPv4Address
     agent_id: str
     interface_ip_id: str
     interface: str
     targetPorts: str
-    traceroute: bool                    # "--traceroute"
-    serviceVersion: bool                # "-sV"
-    stealthScan: bool                   # "-O"
-    skipDiscovery: bool                 # "-Pn"
-    scanTechniques: Optional[str]       # ["-sS", "-sT", "-sA", "-sW" "-sM" "-sU"]
-    portsDiscovery: Optional[str]       # ["-PA", "-PS", "-PU", "-PY"]
-    requestDiscovery: Optional[str]     # ["-PE", "-PP", "-PM"]
+    traceroute: bool  # "--traceroute"
+    serviceVersion: bool  # "-sV"
+    stealthScan: bool  # "-O"
+    skipDiscovery: bool  # "-Pn"
+    scanTechniques: Optional[str]  # ["-sS", "-sT", "-sA", "-sW" "-sM" "-sU"]
+    portsDiscovery: Optional[str]  # ["-PA", "-PS", "-PU", "-PY"]
+    requestDiscovery: Optional[str]  # ["-PE", "-PP", "-PM"]
+
 
 class NmapParseTaskPayload(BaseModel):
     agent_id: str
@@ -141,3 +140,8 @@ class SnmpBruteCommunityStringPayload(BaseModel):
     target_ip: str | None = None
     target_port: int | None = None
     community_strings_file: str
+
+
+class DNSAScreenshotTaskPayload(BaseModel):
+    agent_id: str
+    url: str

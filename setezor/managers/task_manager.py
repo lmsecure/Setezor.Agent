@@ -5,6 +5,7 @@ from fastapi import BackgroundTasks
 import aiofiles
 import orjson
 from setezor.managers.health_check_manager import HealthCheck
+from setezor.managers.info_manager import InfoManager
 from setezor.managers.scheduler_manager import SchedulerManager
 from setezor.tasks.base_job import BaseJob
 from setezor.schemas.task import TaskPayload, \
@@ -128,7 +129,8 @@ class TaskManager(Observer):
                 async with aiofiles.open(os.path.join(PATH_PREFIX, "config.json"), 'w') as file:
                     await file.write(orjson.dumps(connection_payload).decode())
                 loop = asyncio.get_running_loop()
-                loop.create_task(HealthCheck.periodic_health_check(agent_id=Spy.AGENT_ID, parent_agent_urls=Spy.PARENT_AGENT_URLS))
+                loop.create_task(HealthCheck.periodic_health_check())
+                await InfoManager.send_info()
                 return {"status": "OK"}
             except Exception as e:
                 logger.error(str(e))
