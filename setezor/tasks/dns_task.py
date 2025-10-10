@@ -9,18 +9,14 @@ class DNSTask(BaseJob):
         super().__init__(scheduler=scheduler, name=name)
         self.project_id = project_id
         self.task_id = task_id
-        self.domain = domain
+        self.target = domain
         self.agent_id = agent_id
         self._coro = self.run()
 
     async def _task_func(self) -> list[Any]:
-        return await DNSModule.query(self.domain)
+        return await DNSModule.query(target = self.target)
 
     @BaseJob.remote_task_notifier
     async def run(self):
-        result = await self._task_func()
-        data = {
-            "raw_result": result,
-            "domain_name": self.domain
-        }
+        data = await self._task_func()
         return data, ''

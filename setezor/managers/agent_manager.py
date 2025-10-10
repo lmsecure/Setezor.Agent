@@ -2,12 +2,7 @@ import base64
 import orjson
 from setezor.tools.sender import HTTPManager
 from setezor.spy import Spy
-import platform
-system = platform.system()
-if system == "Linux":
-    from setezor.tools.ip_tools import get_interfaces
-else:
-    from setezor.tools.ip_tools_windows import get_interfaces
+from setezor.tools.ip_tools import get_interfaces
 from setezor.managers.cipher_manager import Cryptor
 
 

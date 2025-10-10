@@ -1,11 +1,6 @@
-import platform
 from typing import Any
 from setezor.tasks.base_job import BaseJob
-system = platform.system()
-if system == "Linux":
-    from setezor.tools.ip_tools import get_interfaces
-else:
-    from setezor.tools.ip_tools_windows import get_interfaces
+from setezor.tools.ip_tools import get_interfaces
 
 
 class SelfHostedAgentInterfaces(BaseJob):

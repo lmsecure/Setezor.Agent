@@ -3,13 +3,7 @@ import psutil
 import os
 from setezor.tasks.base_job import BaseJob
 from setezor.modules.nmap.scanner import NmapScanner
-import platform
-
-system = platform.system()
-if system == "Linux":
-    from setezor.tools.ip_tools import get_ipv4, get_mac
-else:
-    from setezor.tools.ip_tools_windows import get_nmap_interfaces, get_ipv4, get_mac
+from setezor.tools.ip_tools import get_ipv4, get_mac, get_interface
 
 
 
@@ -32,11 +26,9 @@ class NmapScanTask(BaseJob):
         self.project_id = project_id
         self.agent_id = agent_id
         self.interface_ip_id = interface_ip_id
-        self.interface = interface
-        self.ip = get_ipv4(self.interface)
-        self.mac = get_mac(self.interface)
-        if system == "Windows":
-            self.interface = get_nmap_interfaces()[self.ip]
+        self.ip = get_ipv4(interface)
+        self.mac = get_mac(interface)
+        self.interface = get_interface(interface)
         self.extra_args = [targetIP, targetPorts]
         if traceroute: self.extra_args.append("--traceroute")
         if serviceVersion: self.extra_args.append("-sV")

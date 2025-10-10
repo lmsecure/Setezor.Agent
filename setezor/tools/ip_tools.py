@@ -1,44 +1,46 @@
 import socket
-import fcntl
-import struct
 import ipaddress
+import psutil
+import platform
 from setezor.network_structures import InterfaceStruct
 
-    
-def get_default_interface():
-    return ''
+system = platform.system()
 
 
-def get_ipv4(interface: str):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return socket.inet_ntoa(fcntl.ioctl(s.fileno(),0x8915,struct.pack('256s', interface.encode()[:15]))[20:24])
+def get_ipv4(interface: str) -> str | None:
+    for addr in psutil.net_if_addrs().get(interface, []):
+        if addr.family == socket.AF_INET:
+            return addr.address
+    return None
 
 
-def get_mac(interface: str):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return ':'.join('%02x' % b for b in fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', bytes(interface, 'utf-8')[:15]))[18:24]).upper()
+def get_mac(interface: str) -> str | None:
+    for addr in psutil.net_if_addrs().get(interface, []):
+        if addr.family == psutil.AF_LINK:
+            return addr.address.upper().replace("-", ":")
+    return None
         
 
 def get_interfaces() -> list[InterfaceStruct]:
-    
-    """Возвращает список интерфейсов"""
-    
-    ifaces = []
-    for ind, name in socket.if_nameindex():
-        try:
-            ip = get_ipv4(name)
-        except Exception:
-            ip = None
-        try:
-            mac = get_mac(name)
-        except Exception:
-            mac = None
-        ifaces.append(InterfaceStruct(
-            name=name,
-            ip=ip,
-            mac=mac
-            ))
-    return ifaces
+    """Returns interface list"""
+
+    interfaces = []
+    for name, addrs in psutil.net_if_addrs().items():
+        for addr in addrs:
+            if addr.family == socket.AF_INET:
+                interfaces.append(InterfaceStruct(name=name, ip=addr.address, mac=addr.netmask))
+    return interfaces
+
+
+def get_interface(interface: str) -> str | None:
+    if system == "Windows":
+        import wmi
+        for network_adapter in wmi.WMI().Win32_NetworkAdapter(NetEnabled=True):
+            if network_adapter.NetConnectionID == interface:
+                return f"\\Device\\NPF_{network_adapter.GUID}"
+        return None
+    else:
+        return interface
 
 
 def is_ip_address(address):

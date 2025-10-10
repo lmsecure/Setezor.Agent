@@ -1,24 +1,19 @@
-import asyncio
 import os
 import signal
-import psutil
 from .base_job import BaseJob
+from setezor.tools.ip_tools import get_ipv4, get_mac, get_interface
 from setezor.modules.masscan.executor import MasscanScanner
-import platform
-system = platform.system()
-if system == "Linux":
-    from setezor.tools.ip_tools import get_ipv4, get_mac
-else:
-    from setezor.tools.ip_tools_windows import get_ipv4, get_mac
+import asyncio
+from concurrent.futures import ProcessPoolExecutor
 
 
 class MasscanScanTask(BaseJob):
 
     def __init__(self, scheduler, name: str, task_id: int,  target: str, project_id:str, agent_id: int, ping: bool, ports: str, format: str, wait: int, source_port: int, max_rate: int, search_udp_port: bool, interface_ip_id: int, interface: str):
         super().__init__(scheduler = scheduler, name = name)
-        self.interface = interface
         self.interface_ip_id = interface_ip_id
-        self.interface_addr = get_ipv4(self.interface)
+        self.interface_addr = get_ipv4(interface)
+        self.interface = get_interface(interface)
         self.project_id = project_id
         self.agent_id = agent_id
         self.target = target

@@ -7,4 +7,4 @@ if system == "Windows":
     PATH_PREFIX = os.path.dirname(os.path.dirname(__file__))
 os.makedirs(PATH_PREFIX, exist_ok=True)
 LOG_LEVEL = "INFO"
-VERSION = "1.0.3"
+VERSION = "1.0.4"
