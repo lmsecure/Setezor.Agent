@@ -17,3 +17,4 @@ pysnmp==7.1.5
 psutil==7.0.0
 pydantic-settings==2.10.1
 playwright==1.55.0
+wmi==1.5.1 ; sys_platform == 'win32'

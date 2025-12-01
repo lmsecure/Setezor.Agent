@@ -1,11 +1,11 @@
 import asyncio
 from asyncio.subprocess import PIPE as asyncPIPE
-import platform
+from setezor.settings import PLATFORM
 
-system = platform.system()
+
 
 async def create_async_shell_subprocess(command: list[str]):
-    if system == "Windows":
+    if PLATFORM == "Windows":
         return await asyncio.create_subprocess_exec(
             *command,
             stdin=asyncPIPE,

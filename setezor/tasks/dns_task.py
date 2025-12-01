@@ -5,16 +5,19 @@ from setezor.modules.osint.dns_info.dns_info import DNS as DNSModule
 class DNSTask(BaseJob):
 
 
-    def __init__(self, scheduler, name: str, task_id: int, project_id: str, domain: str, agent_id: str):
+    def __init__(self, scheduler, name: str, task_id: int, project_id: str, agent_id: str,
+                 domain: str, ns_servers: list[str] | None = None, records: list[str] | None = None):
         super().__init__(scheduler=scheduler, name=name)
         self.project_id = project_id
         self.task_id = task_id
-        self.target = domain
         self.agent_id = agent_id
+        self.target = domain
+        self.ns_servers = ns_servers
+        self.records = records
         self._coro = self.run()
 
     async def _task_func(self) -> list[Any]:
-        return await DNSModule.query(target = self.target)
+        return await DNSModule.query(target = self.target, ns_servers=self.ns_servers, records=self.records)
 
     @BaseJob.remote_task_notifier
     async def run(self):

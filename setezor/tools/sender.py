@@ -3,6 +3,7 @@ import aiohttp
 import platform
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
+from setezor.settings import PLATFORM
 
 
 class SenderInterface(ABC):
@@ -24,7 +25,7 @@ class HTTPManager(SenderInterface):
 
     @classmethod
     def _run_in_selector_loop(cls, url: str, data: dict | list[dict]):
-        if platform.system() == "Windows":
+        if PLATFORM == "Windows":
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)

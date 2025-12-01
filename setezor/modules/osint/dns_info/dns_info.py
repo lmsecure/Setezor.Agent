@@ -1,11 +1,22 @@
 import ipaddress
 import dns.asyncresolver
 import asyncio
-from typing import List, Dict
+
+
 
 class DNS:
+
+    # TODO: возможно, в дальнейшем, можно добавить еще (соответственно нужно будет добавить обработчики под них, на сервере):
+    #    CAA - контроль SSL-сертификатов.
+    #  NAPTR - маршрутизация сервисов (SIP, ENUM, XMPP).
+    #     DS - хэш от DNSSEC-ключа (связь с родителем).
+    # DNSKEY - публичные ключи DNSSEC.
+    #  DMARC - политика почты (через TXT).
+    __allowed_records = {"A", "CNAME", "MX", "AAAA", "SRV", "TXT", "NS", "PTR", "SOA"}
+
+
     @classmethod
-    async def query(cls, target: str):
+    async def query(cls, target: str, ns_servers: list[str] = None,  records: list[str] | None = None):
         target_ip = None
         try:
             ipaddress.ip_address(target)
@@ -13,7 +24,7 @@ class DNS:
             target = str(dns.reversename.from_address(target))
         except ValueError:
             pass  # target is domain (no ip)
-        responses = await cls.get_records(domain = target)
+        responses = await cls.get_records(domain = target, ns_servers=ns_servers, records=records)
         result = cls.proceed_records(responses, target_ip=target_ip)
         data = {
             "domain_name": target.rstrip('.'),
@@ -21,8 +32,9 @@ class DNS:
         }
         return data
 
+
     @classmethod
-    def proceed_records(cls, responses: List, target_ip: str = None):
+    def proceed_records(cls, responses: list, target_ip: str = None):
         domain_records = []
         for response in responses:
             if isinstance(response, Exception):
@@ -44,27 +56,29 @@ class DNS:
         domain_records.sort(key=lambda x: x['record_value'])
         return domain_records
 
-    @classmethod
-    async def resolve_domain(cls, domain: str, record: str):
-        result = await dns.asyncresolver.resolve(qname=domain, rdtype=record)
-        return record, result
 
     @classmethod
-    async def get_records(cls, domain: str) -> List[Dict[str, str]]:
+    async def resolve_domain(cls, domain: str, record: str, ns_servers: list[str] | None = None):
+        resolver = dns.asyncresolver.Resolver()
+        tcp = False
+        if ns_servers:
+            tcp = True
+            resolver.nameservers = ns_servers
+        result = await resolver.resolve(qname=domain, rdtype=record, tcp=tcp)
+        return record, result
+
+
+    @classmethod
+    async def get_records(cls, domain: str, ns_servers: list[str] | None = None, records: list[str] | None = None) -> list[dict[str, str]]:
         """
             Получает список для ресурсных записей DNS, которые существуют у домена
         """
-        records = ["A", "CNAME", "MX", "AAAA",
-                   "SRV", "TXT", "NS", "PTR", "SOA"]
-        # TODO: возможно, в дальнейшем, можно добавить еще (соответственно нужно будет добавить обработчики под них, на сервере):
-        #    CAA - контроль SSL-сертификатов.
-        #  NAPTR - маршрутизация сервисов (SIP, ENUM, XMPP).
-        #     DS - хэш от DNSSEC-ключа (связь с родителем).
-        # DNSKEY - публичные ключи DNSSEC.
-        #  DMARC - политика почты (через TXT).
+        if not records:
+            records = cls.__allowed_records
+        else:
+            records = [record for record in records if record.upper() in cls.__allowed_records]
         tasks = []
         for record in records:
-            task = asyncio.create_task(cls.resolve_domain(domain, record))
+            task = asyncio.create_task(cls.resolve_domain(domain, record, ns_servers=ns_servers))
             tasks.append(task)
         return await asyncio.gather(*tasks, return_exceptions=True)
-

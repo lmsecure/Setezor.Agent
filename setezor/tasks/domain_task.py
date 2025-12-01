@@ -10,11 +10,12 @@ from setezor.modules.osint.sd_search.crtsh import CrtSh
 class SdFindTask(BaseJob):
 
 
-    def __init__(self, scheduler, name: str, task_id: int, domain: str, project_id: str, crt_sh: bool, agent_id: str):
+    def __init__(self, scheduler, name: str, task_id: int, domain: str, project_id: str, crt_sh: bool, agent_id: str, dict_file: str):
         super().__init__(scheduler=scheduler, name=name)
         self.task_id = task_id
         self.project_id = project_id
         self.domain = domain
+        self.dict_file = dict_file
         self.crt_sh = crt_sh
         self.agent_id = agent_id
         self._coro = self.run()
@@ -27,7 +28,7 @@ class SdFindTask(BaseJob):
             list[str]: Список доменов
         """
         tasks = []
-        tasks = [asyncio.create_task(Domain_brute.query(self.domain,"A"))]
+        tasks = [asyncio.create_task(Domain_brute.query(self.domain, dict_file=self.dict_file, query_type = "A"))]
         if self.crt_sh:
             tasks.append(asyncio.create_task(CrtSh.crt_sh(self.domain)))
         result = await asyncio.gather(*tasks)

@@ -5,6 +5,7 @@ from setezor.tasks.base_job import BaseJob
 from setezor.tasks.nmap_scan_task import NmapScanTask
 from setezor.tasks.masscan_scan_task import MasscanScanTask
 from setezor.tasks.scapy_scan_task import ScapySniffTask
+from setezor.tasks.ip_info_task import IpInfoTask
 from setezor.tasks.snmp_brute_community_string_task import SnmpBruteCommunityStringTask
 from setezor.interfaces.observer import Observable, Observer
 
@@ -79,6 +80,12 @@ class SchedulerManager:
             "pending_limit": 10000
         },
         SnmpBruteCommunityStringTask: {
+            "close_timeout": 0.1,
+            "wait_timeout": 60,
+            "limit": 1,
+            "pending_limit": 10000
+        },
+        IpInfoTask: {
             "close_timeout": 0.1,
             "wait_timeout": 60,
             "limit": 1,

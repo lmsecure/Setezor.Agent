@@ -1,22 +1,23 @@
-import platform
-system = platform.system()
-if system == "Windows":
-    import asyncio
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-import atexit
-import sys
 import os
+import sys
+import atexit
+import click
+import uvicorn
 from contextlib import ExitStack, contextmanager
 import tempfile
 import warnings
-from cryptography.utils import CryptographyDeprecationWarning
-warnings.filterwarnings("ignore", category=CryptographyDeprecationWarning)
-import click
-import uvicorn
 from OpenSSL import crypto
 
-
 sys.path[0] = ''
+from setezor.settings import PLATFORM
+if PLATFORM == "Windows":
+    import asyncio
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+from cryptography.utils import CryptographyDeprecationWarning
+warnings.filterwarnings("ignore", category=CryptographyDeprecationWarning)
+
+
 
 def generate_self_signed_cert():
     key = crypto.PKey()

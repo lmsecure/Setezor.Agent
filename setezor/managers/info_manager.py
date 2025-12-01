@@ -1,6 +1,6 @@
 import getpass
 from setezor.managers.agent_manager import AgentManager
-from setezor.settings import VERSION
+from setezor.settings import PLATFORM, PYTHON_VERSION, VERSION
 from setezor.spy import Spy
 from setezor.tasks import get_available_tasks
 from setezor.tools.sender import HTTPManager
@@ -12,6 +12,8 @@ class InfoManager:
         for PARENT_URL in Spy.PARENT_AGENT_URLS:
             information = AgentManager.generate_data_for_server(agent_id=Spy.AGENT_ID, data={
                 "signal": "information",
+                "platform": PLATFORM,
+                "python_version": PYTHON_VERSION,
                 "version": VERSION,
                 "tasks": get_available_tasks(),
                 "user": getpass.getuser()

@@ -3,8 +3,10 @@ import ipaddress
 import psutil
 import platform
 from setezor.network_structures import InterfaceStruct
+from setezor.settings import PLATFORM
 
-system = platform.system()
+if PLATFORM == "Windows":
+    import wmi
 
 
 def get_ipv4(interface: str) -> str | None:
@@ -19,7 +21,7 @@ def get_mac(interface: str) -> str | None:
         if addr.family == psutil.AF_LINK:
             return addr.address.upper().replace("-", ":")
     return None
-        
+
 
 def get_interfaces() -> list[InterfaceStruct]:
     """Returns interface list"""
@@ -33,8 +35,7 @@ def get_interfaces() -> list[InterfaceStruct]:
 
 
 def get_interface(interface: str) -> str | None:
-    if system == "Windows":
-        import wmi
+    if PLATFORM == "Windows":
         for network_adapter in wmi.WMI().Win32_NetworkAdapter(NetEnabled=True):
             if network_adapter.NetConnectionID == interface:
                 return f"\\Device\\NPF_{network_adapter.GUID}"

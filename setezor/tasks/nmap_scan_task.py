@@ -3,8 +3,8 @@ import psutil
 import os
 from setezor.tasks.base_job import BaseJob
 from setezor.modules.nmap.scanner import NmapScanner
-from setezor.tools.ip_tools import get_ipv4, get_mac, get_interface
-
+from setezor.tools.ip_tools import get_ipv4, get_mac
+from setezor.settings import PLATFORM
 
 
 class NmapScanTask(BaseJob):
@@ -28,8 +28,12 @@ class NmapScanTask(BaseJob):
         self.interface_ip_id = interface_ip_id
         self.ip = get_ipv4(interface)
         self.mac = get_mac(interface)
-        self.interface = get_interface(interface)
-        self.extra_args = [targetIP, targetPorts]
+        self.interface = interface
+        self.extra_args = ["-e"]
+        if PLATFORM == "Windows":
+            self.interface = self.ip
+            self.extra_args = ["-S"]
+        self.extra_args.extend([self.interface, targetIP, targetPorts])
         if traceroute: self.extra_args.append("--traceroute")
         if serviceVersion: self.extra_args.append("-sV")
         if stealthScan: self.extra_args.append("-O")
@@ -37,7 +41,6 @@ class NmapScanTask(BaseJob):
         if scanTechniques: self.extra_args.append(scanTechniques)
         if portsDiscovery: self.extra_args.append(portsDiscovery)
         if requestDiscovery: self.extra_args.append(requestDiscovery)
-        self.extra_args.append("-e " + self.interface)
         self.extra_args.append("-n")
         # self.extra_args.append("-d4")
         self.pid = None
