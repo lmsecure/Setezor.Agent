@@ -1,9 +1,18 @@
+import os
 from setezor.tasks.base_job import BaseJob
-from setezor.modules.speed_test.speed_test import Client, Server
-from random import randint
+from setezor.tools.importer import load_class_from_path
 
 
 class SpeedTestClientTask(BaseJob):
+
+    module_name = "speed_test"
+    Client = load_class_from_path(module_name, "speed_test.py", "Client")
+
+    @classmethod
+    def load_module(cls):
+        cls.Client = load_class_from_path(cls.module_name, "speed_test.py", "Client")
+        return cls.Client is not None
+
 
     def __init__(self, scheduler, name: str, task_id: str, agent_id: str, project_id: str,
                  ip_id_from: str, ip_id_to: str, target_port: int, target_ip: str, duration: int = 5, packet_size: int = 1400, protocol: int = 0, **kwargs):
@@ -21,7 +30,7 @@ class SpeedTestClientTask(BaseJob):
         self._coro = self.run()
 
     async def _task_func(self) -> None:
-        await Client.start(client_id=self.task_id,
+        await self.Client.start(client_id=self.task_id,
                      target_ip=self.target_ip,
                      target_port=self.target_port,
                      duration=self.duration,
@@ -30,7 +39,7 @@ class SpeedTestClientTask(BaseJob):
                      verbose=False)
 
     async def soft_stop(self):
-        await Client.finish(client_id=self.task_id)
+        await self.Client.finish(client_id=self.task_id)
 
     @BaseJob.remote_task_notifier
     async def run(self):
@@ -40,6 +49,15 @@ class SpeedTestClientTask(BaseJob):
 
 
 class SpeedTestServerTask(BaseJob):
+
+    module_name = "speed_test"
+    Server = load_class_from_path(module_name, "speed_test.py", "Server")
+
+    @classmethod
+    def load_module(cls):
+        cls.Server = load_class_from_path(cls.module_name, "speed_test.py", "Server")
+        return cls.Server is not None
+
 
     def __init__(self, scheduler, name: str, task_id: str, agent_id: str, project_id: str,
                  ip_id_from: str, ip_id_to: str, target_port: int, protocol: int = 0, **kwargs):
@@ -58,13 +76,13 @@ class SpeedTestServerTask(BaseJob):
 
 
     async def _task_func(self) -> float:
-        return await Server.start(server_id=self.task_id,
+        return await self.Server.start(server_id=self.task_id,
                             target_port=self.target_port,
                             protocol=self.protocol,
                             verbose=False)
 
     async def soft_stop(self):
-        await Server.finish(server_id=self.task_id)
+        await self.Server.finish(server_id=self.task_id)
 
     @BaseJob.remote_task_notifier
     async def run(self):

@@ -1,9 +1,18 @@
-from setezor.tasks.base_job import BaseJob
-from setezor.modules.ip_info.executor import IpInfo
 import asyncio
+from setezor.tasks.base_job import BaseJob
+from setezor.tools.importer import load_class_from_path
 
 
 class IpInfoTask(BaseJob):
+
+    module_name = "ip_info"
+    IpInfoModule = load_class_from_path(module_name, "executor.py", "IpInfo")
+
+    @classmethod
+    def load_module(cls):
+        cls.IpInfoModule = load_class_from_path(cls.module_name, "executor.py", "IpInfo")
+        return cls.IpInfoModule is not None
+
 
     def __init__(self, scheduler, name: str, task_id: int, project_id: str, agent_id: str,
                  target: str, fields: list[str], *args, **kwargs):
@@ -19,7 +28,7 @@ class IpInfoTask(BaseJob):
 
     async def _task_func(self) -> dict[str, str]:
         for _ in range(3):
-            result = await IpInfo.get_json(target=self.target, fields=self.fields)
+            result = await self.IpInfoModule.get_json(target=self.target, fields=self.fields)
             if (data := result.get("data")):
                 return { "raw_result" : data }
             if not result.get("X-Rl"):

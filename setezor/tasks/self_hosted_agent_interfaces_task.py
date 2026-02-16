@@ -5,6 +5,11 @@ from setezor.tools.ip_tools import get_interfaces
 
 class SelfHostedAgentInterfaces(BaseJob):
 
+    @classmethod
+    def load_module(cls):
+        return True
+
+
     def __init__(self, scheduler, name: str, task_id: int, project_id: str, agent_id: str, object_id: str):
         super().__init__(scheduler=scheduler, name=name)
         self.project_id = project_id

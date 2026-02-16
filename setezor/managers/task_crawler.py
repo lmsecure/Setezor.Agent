@@ -58,7 +58,7 @@ class TaskCrawlerManager:
                                     agent_id=task.get("agent_id"),
                                     job_params=task_params,
                                     job_name=task.get("created_by"))
-                    await TaskManager.create_job_on_agent(task_payload)
+                    await TaskManager.create_job_on_agent("create_job", task_payload)
                 
                 tasks_to_soft_stop, status = await HTTPManager.send_json(f"{pagent}/api/v1/agents/backward?keep_connection=true", data=tasks_request_for_soft_stop)
                 payload = tasks_to_soft_stop.get("data")

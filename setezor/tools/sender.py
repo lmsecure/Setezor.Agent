@@ -1,44 +1,49 @@
-import asyncio
+from io import BytesIO
+
 import aiohttp
-import platform
 from abc import ABC, abstractmethod
-from concurrent.futures import ThreadPoolExecutor
-from setezor.settings import PLATFORM
+
+from setezor.logger import logger
 
 
 class SenderInterface(ABC):
+
+    @classmethod
     @abstractmethod
-    async def send_json(cls, url: str, data: dict | list[dict]):
+    async def send_json(cls, url: str, data: dict | list[dict], timeout: float = None):
         pass
 
 
 class HTTPManager(SenderInterface):
-    _executor = ThreadPoolExecutor(max_workers=1)
-
     @classmethod
-    async def send_json(cls, url: str, data: dict | list[dict]):
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            cls._executor,
-            lambda: cls._run_in_selector_loop(url, data)
-        )
-
-    @classmethod
-    def _run_in_selector_loop(cls, url: str, data: dict | list[dict]):
-        if PLATFORM == "Windows":
-            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        return loop.run_until_complete(cls._send(url, data))
-
-    @classmethod
-    async def _send(cls, url: str, data: dict | list[dict]):
-        async with aiohttp.ClientSession() as session:
-            try:
+    async def send_json(cls, url: str, data: dict | list[dict], timeout: float = None, exceptions: bool = True):
+        timeout_config = aiohttp.ClientTimeout(total=timeout)
+        try:
+            async with aiohttp.ClientSession(timeout=timeout_config) as session:
                 async with session.post(url, json=data, ssl=False) as resp:
-                    return await resp.json(), resp.status
-            except (aiohttp.ClientConnectorError,
-                    aiohttp.ConnectionTimeoutError,
-                    aiohttp.ContentTypeError,
-                    aiohttp.InvalidURL):
-                return None, 400
+                    resp_data = await resp.json()
+                    if resp.status >= 300:
+                        if exceptions:
+                            logger.warning(f'Failed to send json | url: {url}, data: {data} | '
+                                           f'Response: status code: {resp.status}, resp_data: {resp_data}')
+                    else:
+                        if exceptions:
+                            logger.debug(f'Success to send json | url: {url}, data: {data}')
+
+                    return resp_data, resp.status
+        except Exception:
+            if exceptions:
+                logger.error(f'Failed to send json | url: {url}, data: {data}', exc_info=False)
+            return None, 400
+
+    @classmethod
+    async def get_bytes(cls, url: str) -> tuple[BytesIO | None, int]:
+        buf = BytesIO()
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, ssl=False) as resp:
+                if resp.status != 200:
+                    return None, resp.status
+                async for chunk in resp.content.iter_chunked(1024 * 1024):
+                    buf.write(chunk)
+        buf.seek(0)
+        return buf, 200

@@ -1,17 +1,18 @@
-import os
+import traceback
+from time import time
 from setezor.tools.importer import load_class_from_path
 from .base_job import BaseJob
 
-class WhoisTask(BaseJob):
 
-    module_name = "whois"
-    Whois = load_class_from_path(module_name, "whoistest.py", "Whois")
+class RdapTask(BaseJob):
+
+    module_name = "rdap"
+    Rdap = load_class_from_path(module_name, "rdap.py", "Rdap")
 
     @classmethod
     def load_module(cls):
-        cls.Whois = load_class_from_path(cls.module_name, "whoistest.py", "Whois")
-        return cls.Whois is not None
-
+        cls.Rdap = load_class_from_path(cls.module_name, "rdap.py", "Rdap")
+        return cls.Rdap is not None
 
     def __init__(self, scheduler, name: str, task_id: int, target: str, agent_id: int, project_id: str):
         super().__init__(scheduler = scheduler, name = name)
@@ -23,7 +24,7 @@ class WhoisTask(BaseJob):
 
 
     async def _task_func(self):
-        return self.Whois.get_whois(ip=self.target)
+        return await self.Rdap.get_rdap_raw(target=self.target)
 
 
     @BaseJob.remote_task_notifier

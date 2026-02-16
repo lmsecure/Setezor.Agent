@@ -1,13 +1,23 @@
 import asyncio
+import os
 from time import time
 import base64
+from setezor.settings import PATH_PREFIX
 from setezor.tasks.base_job import BaseJob
-from setezor.modules.sniffing.scapy_sniffer import ScapySniffer
+from setezor.tools.importer import load_class_from_path
 
 
 
 class ScapySniffTask(BaseJob):
 
+    module_name = "scapy"
+    ScapySniffer = load_class_from_path(module_name, "scapy_sniffer.py", "ScapySniffer")
+
+
+    @classmethod
+    def load_module(cls):
+        cls.ScapySniffer = load_class_from_path(cls.module_name, "scapy_sniffer.py", "ScapySniffer")
+        return cls.ScapySniffer is not None
 
     def __init__(self, scheduler, iface: str, agent_id: int, task_id: int, name: str, project_id: str):
         super().__init__(scheduler=scheduler, name=name)
@@ -16,7 +26,7 @@ class ScapySniffTask(BaseJob):
         self.iface = iface
         self.task_id = task_id
         self.is_stopped = False
-        self.sniffer = ScapySniffer(iface=iface)
+        self.sniffer = self.ScapySniffer(iface=iface)
         self._coro = self.run()
 
 

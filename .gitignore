@@ -6,7 +6,6 @@ tmp_chain.py
 config.json
 .env*
 *.deb
-setezor.bin
+*.bin
 build.sh
-requirements-test.txt
-Dockerfile.test
+.pytest_cache

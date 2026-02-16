@@ -1,5 +1,10 @@
 import base64
+import io
+from io import BytesIO
+
 import orjson
+from fastapi.responses import StreamingResponse
+
 from setezor.tools.sender import HTTPManager
 from setezor.spy import Spy
 from setezor.tools.ip_tools import get_interfaces
@@ -35,5 +40,13 @@ class AgentManager:
     async def send_to_parent(cls, data: dict, keep_connection: bool = False):
         for url in Spy.PARENT_AGENT_URLS:
             data, status = await HTTPManager.send_json(url=f"{url}/api/v1/agents/backward{"?keep_connection=true" if keep_connection else ""}", data=data)
+            if status == 200:
+                return data
+
+    @classmethod
+    async def get_module(cls, agent_id: str, module_name: str) -> BytesIO | None:
+        for url in Spy.PARENT_AGENT_URLS:
+            data, status = await HTTPManager.get_bytes(
+                url=f"{url}/api/v1/agents/get_module/{agent_id}/{module_name}")
             if status == 200:
                 return data

@@ -1,16 +1,20 @@
 import asyncio
+import io
 import os
 import base64
+import sys
+
 from fastapi import BackgroundTasks
 import aiofiles
 import orjson
+from starlette.responses import StreamingResponse
+
 from setezor.managers.health_check_manager import HealthCheck
 from setezor.managers.info_manager import InfoManager
 from setezor.managers.scheduler_manager import SchedulerManager
 from setezor.tasks.base_job import BaseJob
 from setezor.schemas.task import TaskPayload, \
     TaskStatus
-from setezor.tasks import get_task_by_class_name
 from setezor.spy import Spy
 from setezor.managers.agent_manager import AgentManager
 from setezor.tools.sender import HTTPManager
@@ -27,8 +31,9 @@ class TaskManager(Observer):
     tasks = {}
 
     @classmethod  # метод агента на создание джобы
-    async def create_job_on_agent(cls, payload: TaskPayload):
-        job_cls = get_task_by_class_name(payload.job_name)
+    async def create_job_on_agent(cls, signal: str, payload: TaskPayload):
+        back_signal = "task_status" if signal == "create_task" else "job_status"
+        job_cls = BaseJob.get_task_by_class_name(payload.job_name)
         scheduler = cls.create_new_scheduler(job_cls)
         task_id = payload.task_id
         if task_id in cls.tasks:
@@ -42,18 +47,19 @@ class TaskManager(Observer):
                 project_id=project_id,
                 **payload.job_params
             )
-        except Exception as e:
+        except Exception:
             task_status_data = {
-            "signal": "task_status",
+            "signal": back_signal,
             "task_id": task_id,
             "status": TaskStatus.failed,
             "type": "error",
             "traceback": "Failed to create task on agent"
             }
             await cls.notify(agent_id=payload.agent_id, data=task_status_data)
+            logger.error(f'Failed to create task | task_id: {task_id}, payload: {payload}')
             return
         task_status_data = {
-            "signal": "task_status",
+            "signal": back_signal,
             "task_id": task_id,
             "status": TaskStatus.registered,
             "type": "success",
@@ -61,9 +67,9 @@ class TaskManager(Observer):
         }
         await cls.notify(agent_id=payload.agent_id, data=task_status_data)
         job: BaseJob = await scheduler.spawn_job(new_job)
+        logger.info(f'Created task | task_id: {task_id}, payload: {payload}')
         cls.tasks[task_id] = job
         return task_id
-
 
     @classmethod  # метод агента на мягкое завершение таски
     async def soft_stop_task_on_agent(cls, id: str) -> str:
@@ -81,6 +87,7 @@ class TaskManager(Observer):
                 agent_id=task.agent_id,
                 data=task_status_data
             )
+            logger.info(f'Stopped task | task_id: {id}')
         return id
     
     @classmethod  # метод агента на дроп таски
@@ -99,6 +106,7 @@ class TaskManager(Observer):
                 agent_id=task.agent_id,
                 data=task_status_data
             )
+            logger.info(f'Canceled task | task_id: {id}')
         return id
 
     @classmethod  # метод агента на создание шедулера
@@ -129,17 +137,16 @@ class TaskManager(Observer):
                 async with aiofiles.open(os.path.join(PATH_PREFIX, "config.json"), 'w') as file:
                     await file.write(orjson.dumps(connection_payload).decode())
                 loop = asyncio.get_running_loop()
-                loop.create_task(HealthCheck.periodic_health_check())
-                await InfoManager.send_info()
+                loop.create_task(HealthCheck.periodic_health_check(event=InfoManager.send_info))
                 return {"status": "OK"}
-            except Exception as e:
-                logger.error(str(e))
+            except Exception:
+                logger.error(f'Error on forward_request | payload: {payload}')
                 return {"status": "You are suspicious"}
         try:
             deciphered_data: bytes = Cryptor.decrypt(
                 data=data, key=Spy.SECRET_KEY)
-        except Exception as e:
-            logger.error(str(e))
+        except Exception as exp:
+            logger.error(f'Error while decrypting data: {str(exp)}', exc_info=False)
             return {}
 
         json_data: dict = orjson.loads(deciphered_data)
@@ -149,20 +156,19 @@ class TaskManager(Observer):
                 background_tasks.add_task(HTTPManager.send_json,
                                           url=url,
                                           data=json_data)
-                logger.debug(f"Redirected payload to {url}")
-                return {}
+                data = {}
             else:
-                logger.debug(f"Redirected payload to {url}")
-                data, status = await HTTPManager.send_json(url=url, data=json_data) ####
-                return data
+                data, status = await HTTPManager.send_json(url=url, data=json_data)
+            logger.debug(f"Redirected payload to {url}")
+            return data
 
         signal = json_data.pop("signal", None)
         match signal:
             case "interfaces":
                 return AgentManager.interfaces()
-            case "create_task":
+            case "create_job" | "create_task":
                 payload = TaskPayload(**json_data)
-                await TaskManager.create_job_on_agent(payload=payload)
+                await TaskManager.create_job_on_agent(signal=signal, payload=payload)
                 return {}
             case "soft_stop_task":
                 task_id = json_data.get("id")
@@ -172,6 +178,9 @@ class TaskManager(Observer):
                 task_id = json_data.get("id")
                 await TaskManager.cancel_task_on_agent(id=task_id)
                 return {}
+            case "refresh_agent":
+                Spy.remove_config()
+                os.execv(sys.executable, [sys.executable, *sys.argv])
             case _:
                 return {}
 
@@ -211,6 +220,7 @@ class TaskManager(Observer):
             _, status = await HTTPManager.send_json(url=f"{PARENT_URL}/api/v1/agents/backward",
                                         data=data_for_parent_agent)
             if status == 200:
+                logger.info(f'FINISHED TASK {task_id}')
                 break
         cls.delete_task(task_id=task_id)
 
@@ -234,3 +244,18 @@ class TaskManager(Observer):
     @classmethod
     def delete_task(cls, task_id: str):
         cls.tasks.pop(task_id, None)
+
+    @staticmethod
+    def _stream_bytes(buf: io.BytesIO, chunk_size=1024 * 1024):
+        buf.seek(0)
+        while chunk := buf.read(chunk_size):
+            yield chunk
+
+    @Spy.spy_func(method="GET", endpoint="/api/v1/agents/get_module/{agent_id}/{module_name}")
+    @staticmethod
+    async def get_module(module_name: str, agent_id: str) -> StreamingResponse:
+        data = await AgentManager.get_module(module_name=module_name, agent_id=agent_id)
+        return StreamingResponse(
+            TaskManager._stream_bytes(data),
+            media_type="application/octet-stream"
+        )

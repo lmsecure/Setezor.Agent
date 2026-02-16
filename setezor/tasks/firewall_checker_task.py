@@ -1,10 +1,19 @@
+import os
+from setezor.tools.importer import load_class_from_path
 from .base_job import BaseJob
-from setezor.modules.firewall_checker.sender import Sender
-from setezor.modules.firewall_checker.sniffer import Sniffer
 
 
 
 class FirewallCheckerSenderTask(BaseJob):
+
+    module_name = "firewall_checker"
+    Sender = load_class_from_path(module_name, "sender.py", "Sender")
+
+    @classmethod
+    def load_module(cls):
+        cls.Sender = load_class_from_path(cls.module_name, "sender.py", "Sender")
+        return cls.Sender is not None
+
 
     def __init__(self, scheduler, name: str, project_id: str, task_id: int, agent_id: int,
                  sniffer_task_id: str,
@@ -38,7 +47,7 @@ class FirewallCheckerSenderTask(BaseJob):
 
 
     async def _task_func(self):
-        await Sender.start(
+        await self.Sender.start(
             sender_id=self.task_id,
             interface_name=self.interface_name,
             target_ip=self.target_ip,
@@ -52,7 +61,7 @@ class FirewallCheckerSenderTask(BaseJob):
 
 
     async def soft_stop(self):
-        await Sender.finish(sender_id=self.task_id)
+        await self.Sender.finish(sender_id=self.task_id)
 
 
     @BaseJob.remote_task_notifier
@@ -63,6 +72,15 @@ class FirewallCheckerSenderTask(BaseJob):
 
 
 class FirewallCheckerSnifferTask(BaseJob):
+
+    module_name = "firewall_checker"
+    Sniffer = load_class_from_path(module_name, "sniffer.py", "Sniffer")
+
+    @classmethod
+    def load_module(cls):
+        cls.Sniffer = load_class_from_path(cls.module_name, "sniffer.py", "Sniffer")
+        return cls.Sniffer is not None
+
 
     def __init__(self, scheduler, name: str, project_id: str, task_id: int, agent_id: int,
                  ip_id_from: str,
@@ -85,7 +103,7 @@ class FirewallCheckerSnifferTask(BaseJob):
 
 
     async def _task_func(self) -> str:
-        return await Sniffer.start(
+        return await self.Sniffer.start(
             sniffer_id=self.task_id,
             protocol=self.protocol,
             payload_salt=self.payload_salt,
@@ -93,7 +111,7 @@ class FirewallCheckerSnifferTask(BaseJob):
 
 
     async def soft_stop(self):
-        await Sniffer.finish(sniffer_id=self.task_id)
+        await self.Sniffer.finish(sniffer_id=self.task_id)
 
     @BaseJob.remote_task_notifier
     async def run(self):

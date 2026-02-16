@@ -1,6 +1,8 @@
 import asyncio
 from typing import List
 from aiojobs import Job, Scheduler
+
+from setezor.tasks import ParseSiteTask
 from setezor.tasks.base_job import BaseJob
 from setezor.tasks.nmap_scan_task import NmapScanTask
 from setezor.tasks.masscan_scan_task import MasscanScanTask
@@ -90,6 +92,12 @@ class SchedulerManager:
             "wait_timeout": 60,
             "limit": 1,
             "pending_limit": 10000
+        },
+        ParseSiteTask: {
+            "close_timeout": 0.1,
+            "wait_timeout": 120,
+            "limit": 1,
+            "pending_limit": 100
         }
     }
 

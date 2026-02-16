@@ -2,12 +2,29 @@ import signal
 import psutil
 import os
 from setezor.tasks.base_job import BaseJob
-from setezor.modules.nmap.scanner import NmapScanner
 from setezor.tools.ip_tools import get_ipv4, get_mac
 from setezor.settings import PLATFORM
 
+from setezor.tools.importer import load_class_from_path
+
+if PLATFORM == "Linux":
+    from setezor.tools.ip_tools import get_ipv4, get_mac
+else:
+    from setezor.tools.ip_tools_windows import get_nmap_interfaces, get_ipv4, get_mac
+
+
 
 class NmapScanTask(BaseJob):
+
+    module_name = "nmap"
+    NmapScanner = load_class_from_path(module_name, "scanner.py", "NmapScanner")
+
+    @classmethod
+    def load_module(cls):
+        cls.NmapScanner = load_class_from_path(cls.module_name, "scanner.py", "NmapScanner")
+        return cls.NmapScanner is not None
+
+
     def __init__ (self, scheduler, name: str, task_id: int, project_id: str,
                         targetIP: str,
                         agent_id: int,
@@ -48,7 +65,7 @@ class NmapScanTask(BaseJob):
 
 
     async def _task_func(self):
-        raw_result = await NmapScanner(self).async_run(extra_args=' '.join(self.extra_args), _password=None)
+        raw_result = await self.NmapScanner(self).async_run(extra_args=' '.join(self.extra_args), _password=None)
         data = {
             "raw_result": raw_result,
             "agent_id": self.agent_id,
@@ -59,7 +76,7 @@ class NmapScanTask(BaseJob):
             "interface_ip_id": self.interface_ip_id
         }
         return data
-    
+
     async def soft_stop(self):
         for process in psutil.process_iter():
             if process.ppid() == self.pid:

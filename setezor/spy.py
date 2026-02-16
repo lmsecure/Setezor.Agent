@@ -1,15 +1,16 @@
-import asyncio
 import base64
 from contextlib import asynccontextmanager
 import json
 import os
-from typing import Any, Generic, Literal, Callable, ParamSpec, TypeVar
+from typing import Generic, Literal, Callable, ParamSpec, TypeVar
 import inspect
 import asyncio
 import orjson
-from setezor.settings import PATH_PREFIX
+from setezor.settings import PATH_PREFIX, MODULES_PATH
 from fastapi import FastAPI, Request, Response
+from setezor.tools.watchdog import WatchDog
 from setezor.logger import logger
+
 _P = ParamSpec("_P")
 _Returns = TypeVar("_Returns")
 
@@ -69,12 +70,13 @@ class Spy:
     async def lifespan(app: FastAPI):
         from setezor.managers.health_check_manager import HealthCheck
         from setezor.managers.info_manager import InfoManager
+        WatchDog(info_manager=InfoManager(), path=MODULES_PATH)
         loop = asyncio.get_running_loop()
         if app.state.task_crawler and Spy.NAT:
             loop.create_task(app.state.task_crawler())
         if Spy.AGENT_ID:
-            loop.create_task(HealthCheck.periodic_health_check())
-            await InfoManager.send_info()
+            loop.create_task(HealthCheck.periodic_health_check(event=InfoManager.send_info))
+
         yield
     
     @classmethod
@@ -118,3 +120,9 @@ class Spy:
             raw_config = base64.b64decode(config)
             dict_config = orjson.loads(raw_config)
             f.write(orjson.dumps(dict_config).decode())
+
+    @classmethod
+    def remove_config(cls):
+        if os.path.exists(os.path.join(PATH_PREFIX, "config.json")):
+            os.remove(os.path.join(PATH_PREFIX, "config.json"))
+            logger.info('Config removed')

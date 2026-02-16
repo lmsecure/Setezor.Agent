@@ -17,7 +17,7 @@ class TaskStatus:
 
 class TaskPayload(BaseModel):
     task_id: str
-    project_id: str
+    project_id: Optional[str]
     agent_id: str
     job_params: dict
     job_name: str

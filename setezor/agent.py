@@ -1,6 +1,7 @@
 import os
 import sys
 import atexit
+
 import click
 import uvicorn
 from contextlib import ExitStack, contextmanager
@@ -8,8 +9,14 @@ import tempfile
 import warnings
 from OpenSSL import crypto
 
+
+
 sys.path[0] = ''
-from setezor.settings import PLATFORM
+from setezor.managers.cli_manager import CliManager
+from setezor.logger.logging_config import LOGGING_CONFIG
+from setezor.settings import PATH_PREFIX, PLATFORM
+from setezor.clients.base_client import ApiClient
+from setezor.logger import logger
 if PLATFORM == "Windows":
     import asyncio
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
@@ -61,18 +68,35 @@ def temp_ssl_files(cert_pem, key_pem):
 @click.option('-p', '--port', default=16662, type=int, show_default=True, help='Spy port')
 @click.option('-h', '--host', default="0.0.0.0", type=str, show_default=True, help='Spy host')
 @click.option('-nat', '--nat', type=str, default=None, show_default=True, help='NAT')
-def run_app(nat: str, port: int, host: str):
+@click.pass_context
+def run_app(ctx, nat: str, port: int, host: str):
     """Command starts web application"""
     from setezor.spy import Spy
     import setezor.managers.task_manager
     import setezor.managers.task_crawler
+    from setezor.settings import current_port
+    if ctx.invoked_subcommand is not None:
+        return
+    current_port = port
     app = Spy.create_app(nat=nat)
     with temp_ssl_files(*generate_self_signed_cert()) as (cert_path, key_path):
         uvicorn.run(app=app, 
                     host=host, 
                     port=port, 
                     ssl_keyfile=key_path,
-                    ssl_certfile=cert_path)
+                    ssl_certfile=cert_path,
+                    log_config=LOGGING_CONFIG)
+
+
+@run_app.command(help='Restart the agent and remove config')
+def refresh_agent():
+    if not os.path.exists(os.path.join(PATH_PREFIX, 'config.json')):
+        logger.error('Config not found', exc_info=False)
+        sys.exit()
+    if click.confirm('Are you sure want to refresh agent? Config will be removed'):
+        CliManager(ApiClient()).refresh_agent()
+        click.echo('Agent successfully refreshed')
+
 
 if __name__ == "__main__":
     run_app()
