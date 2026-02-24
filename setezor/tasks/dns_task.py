@@ -30,4 +30,4 @@ class DNSTask(BaseJob):
     @BaseJob.remote_task_notifier
     async def run(self):
         data = await self._task_func()
-        return data, ''
+        return data, 'json'

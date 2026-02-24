@@ -6,11 +6,7 @@ from setezor.tools.ip_tools import get_ipv4, get_mac
 from setezor.settings import PLATFORM
 
 from setezor.tools.importer import load_class_from_path
-
-if PLATFORM == "Linux":
-    from setezor.tools.ip_tools import get_ipv4, get_mac
-else:
-    from setezor.tools.ip_tools_windows import get_nmap_interfaces, get_ipv4, get_mac
+from setezor.tools.ip_tools import get_ipv4, get_mac
 
 
 

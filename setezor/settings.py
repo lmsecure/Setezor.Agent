@@ -33,17 +33,14 @@ else:
 
 
 def get_platform_name() -> str:
-    bits = struct.calcsize('P') * 8
     if PLATFORM == 'Windows':
         if 'PROCESSOR_ARCHITEW6432' in os.environ:
-            arch = 'Win64'
-        else:
-            arch = 'Win64' if os.environ.get('PROCESSOR_ARCHITECTURE', '').lower() == 'amd64' else 'Win32'
-    else:
-        arch = str(bits)
-    return (PLATFORM + arch).lower()
+            return "win64"
+        return 'win64' if os.environ.get('PROCESSOR_ARCHITECTURE', '').lower() == 'amd64' else 'win32'
+    bits = struct.calcsize('P') * 8
+    return (PLATFORM + str(bits)).lower()
 
-VERSION = "1.0.6"
+VERSION = "1.0.6.1"
 LOG_LEVEL = "INFO"
 current_port: int = 16662
 

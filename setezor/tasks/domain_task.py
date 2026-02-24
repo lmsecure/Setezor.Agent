@@ -1,3 +1,4 @@
+import json
 import os
 import traceback
 from time import time
@@ -32,7 +33,7 @@ class SdFindTask(BaseJob):
         self._coro = self.run()
 
 
-    async def _task_func(self) -> list[str]:
+    async def _task_func(self) -> list[dict]:
         """Запускает брут домена по словарю и поиск субдоменов по crt_sh
 
         Returns:
@@ -43,8 +44,7 @@ class SdFindTask(BaseJob):
         if self.crt_sh:
             tasks.append(asyncio.create_task(self.CrtSh.crt_sh(self.domain)))
         result = await asyncio.gather(*tasks)
-        domains = [item['domain'] for item in result[0]]
-        return list(set(domains))
+        return result
 
     @BaseJob.remote_task_notifier
     async def run(self):
@@ -53,4 +53,4 @@ class SdFindTask(BaseJob):
             "target_domain": self.domain,
             "raw_result": result
             }
-        return data, ''
+        return data, 'json'

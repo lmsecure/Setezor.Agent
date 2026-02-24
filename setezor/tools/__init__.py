@@ -1,0 +1,1 @@
+from setezor.tools.shell_tools import create_async_shell_subprocess     # TODO: используется в nmap и masscan (modules_agent на сервере)

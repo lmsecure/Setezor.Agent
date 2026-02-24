@@ -1,5 +1,8 @@
 import os
 import signal
+
+import psutil
+
 from setezor.tools.importer import load_class_from_path
 from .base_job import BaseJob
 from setezor.tools.ip_tools import get_ipv4, get_mac, get_interface

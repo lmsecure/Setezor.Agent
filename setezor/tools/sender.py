@@ -3,6 +3,8 @@ from io import BytesIO
 import aiohttp
 from abc import ABC, abstractmethod
 
+from aiohttp import ClientTimeout
+
 from setezor.logger import logger
 
 
@@ -39,7 +41,7 @@ class HTTPManager(SenderInterface):
     @classmethod
     async def get_bytes(cls, url: str) -> tuple[BytesIO | None, int]:
         buf = BytesIO()
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(timeout=ClientTimeout(total=15*60)) as session:
             async with session.get(url, ssl=False) as resp:
                 if resp.status != 200:
                     return None, resp.status
