@@ -1,11 +1,15 @@
 import asyncio
 from setezor.tasks.base_job import BaseJob
 from setezor.tools.importer import load_class_from_path
-
+import json
 
 class IpInfoTask(BaseJob):
 
     module_name = "ip_info"
+    description = json.dumps({
+        "name": "IP INFO", 
+        "description": ""
+    })
     IpInfoModule = load_class_from_path(module_name, "executor.py", "IpInfo")
 
     @classmethod

@@ -2,10 +2,15 @@ import traceback
 from time import time
 from setezor.tools.importer import load_class_from_path
 from .base_job import BaseJob
+import json
 
 class WhoisShdwsTask(BaseJob):
 
     module_name = "whois_shdws"
+    description = json.dumps({
+        "name": "WHOIS SHDWS", 
+        "description": ""
+    })
     WhoisShdws = load_class_from_path(module_name, "whoistest.py", "WhoisShdws")
 
     @classmethod

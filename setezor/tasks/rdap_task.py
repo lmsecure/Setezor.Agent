@@ -2,11 +2,15 @@ import traceback
 from time import time
 from setezor.tools.importer import load_class_from_path
 from .base_job import BaseJob
-
+import json
 
 class RdapTask(BaseJob):
 
     module_name = "rdap"
+    description = json.dumps({
+        "name": "RDAP", 
+        "description": ""
+    })
     Rdap = load_class_from_path(module_name, "rdap.py", "Rdap")
 
     @classmethod

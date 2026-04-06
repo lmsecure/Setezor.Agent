@@ -1,12 +1,16 @@
 import os
 from setezor.tasks.base_job import BaseJob
 from setezor.tools.importer import load_class_from_path
-
+import json
 
 
 class SnmpBruteCommunityStringTask(BaseJob):
 
     module_name = "snmp"
+    description = json.dumps({
+        "name": "SNMP", 
+        "description": ""
+    })
     SnmpGettingAccess = load_class_from_path(module_name, "snmp.py", "SnmpGettingAccess")
     SnmpParser = load_class_from_path(module_name, "parser.py", "SnmpParser")
 

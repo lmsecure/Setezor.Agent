@@ -40,7 +40,7 @@ def get_platform_name() -> str:
     bits = struct.calcsize('P') * 8
     return (PLATFORM + str(bits)).lower()
 
-VERSION = "1.0.6.1"
+VERSION = "1.1.0"
 LOG_LEVEL = "INFO"
 current_port: int = 16662
 

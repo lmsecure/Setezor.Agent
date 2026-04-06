@@ -2,10 +2,15 @@ import os
 from typing import Any
 from setezor.tasks.base_job import BaseJob
 from setezor.tools.importer import load_class_from_path
+import json
 
 class DNSTask(BaseJob):
 
     module_name = "dns_info"
+    description = json.dumps({
+        "name": "LOOKUP", 
+        "description": ""
+    })
     DNSModule = load_class_from_path(module_name, "dns_info.py", "DNS")
 
     @classmethod

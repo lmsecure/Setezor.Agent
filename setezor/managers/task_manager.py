@@ -31,8 +31,7 @@ class TaskManager(Observer):
     tasks = {}
 
     @classmethod  # метод агента на создание джобы
-    async def create_job_on_agent(cls, signal: str, payload: TaskPayload):
-        back_signal = "task_status" if signal == "create_task" else "job_status"
+    async def create_job_on_agent(cls, payload: TaskPayload):
         job_cls = BaseJob.get_task_by_class_name(payload.job_name)
         scheduler = cls.create_new_scheduler(job_cls)
         task_id = payload.task_id
@@ -49,7 +48,7 @@ class TaskManager(Observer):
             )
         except Exception:
             task_status_data = {
-            "signal": back_signal,
+            "signal": "task_status",
             "task_id": task_id,
             "status": TaskStatus.failed,
             "type": "error",
@@ -59,10 +58,10 @@ class TaskManager(Observer):
             logger.error(f'Failed to create task | task_id: {task_id}, payload: {payload}')
             return
         task_status_data = {
-            "signal": back_signal,
+            "signal": "task_status",
             "task_id": task_id,
             "status": TaskStatus.registered,
-            "type": "success",
+            "type": "info",
             "traceback": ""
         }
         await cls.notify(agent_id=payload.agent_id, data=task_status_data)
@@ -79,7 +78,7 @@ class TaskManager(Observer):
             task_status_data = {
                 "signal": "task_status",
                 "task_id": id,
-                "status": TaskStatus.stopped,
+                "status": TaskStatus.soft_stopped,
                 "type": "warning",
                 "traceback": ""
             }
@@ -168,7 +167,7 @@ class TaskManager(Observer):
                 return AgentManager.interfaces()
             case "create_job" | "create_task":
                 payload = TaskPayload(**json_data)
-                await TaskManager.create_job_on_agent(signal=signal, payload=payload)
+                await TaskManager.create_job_on_agent(payload=payload)
                 return {}
             case "soft_stop_task":
                 task_id = json_data.get("id")
@@ -220,7 +219,7 @@ class TaskManager(Observer):
             _, status = await HTTPManager.send_json(url=f"{PARENT_URL}/api/v1/agents/backward",
                                         data=data_for_parent_agent)
             if status == 200:
-                logger.info(f'FINISHED TASK {task_id}')
+                logger.info(f'RESULT TASK HAS BEEN SENT {task_id}')
                 break
         cls.delete_task(task_id=task_id)
 
@@ -238,9 +237,13 @@ class TaskManager(Observer):
 
 
     @classmethod
+    def is_tasks_in_queue(cls):
+        return len(cls.tasks) > 0
+
+    @classmethod
     def get_total_count_of_tasks(cls):
         return sum([len(sch) for sch in cls.schedulers.values()])
-    
+
     @classmethod
     def delete_task(cls, task_id: str):
         cls.tasks.pop(task_id, None)

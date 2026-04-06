@@ -53,6 +53,9 @@ class Spy:
     AGENT_ID: str = None
     TASK_CRAWLER = None
     NAT: bool = False
+    is_connect = False
+    health_check_delay = 10
+    health_check_delay_accumulate = 666
     @classmethod
     def spy_func(cls, method: Literal['GET', 'POST'], endpoint: str) -> SpyMethod[_P, _Returns]:
         def wrapper(func: Callable[_P, _Returns]) -> SpyMethod[_P, _Returns]:
@@ -74,6 +77,7 @@ class Spy:
         loop = asyncio.get_running_loop()
         if app.state.task_crawler and Spy.NAT:
             loop.create_task(app.state.task_crawler())
+            loop.create_task(InfoManager.send_first_payload_nat())
         if Spy.AGENT_ID:
             loop.create_task(HealthCheck.periodic_health_check(event=InfoManager.send_info))
 

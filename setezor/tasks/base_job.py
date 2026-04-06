@@ -35,13 +35,6 @@ class BaseJob(Job):
     async def hard_stop(self):
         pass
 
-    async def get_status(self):
-        return {
-            self.active(): 'active',
-            self.pending(): 'pending',
-            self.closed(): 'finished'
-        }[True]
-
     @logger.not_implemented
     async def get_progress(self):
         pass
@@ -58,8 +51,8 @@ class BaseJob(Job):
             task_status_data = {
                 "signal": "task_status",
                 "task_id": task_id,
-                "status": TaskStatus.started,
-                "type": "success",
+                "status": TaskStatus.processing_on_agent,
+                "type": "info",
                 "traceback": ""
             }
             await self._scheduler.notify(agent_id=agent_id,   # меняем инфу по статусу задачи на сервере
@@ -67,6 +60,11 @@ class BaseJob(Job):
             logger.debug(f"STARTED TASK {func.__qualname__}")
             try:
                 result, raw_result_extension = await func(self, *args, **kwargs)
+                task_status_data["status"] = TaskStatus.finished_on_agent
+                task_status_data["type"] = "success"
+                await self._scheduler.notify(agent_id=agent_id,   # меняем инфу по статусу задачи на сервере
+                                             data=task_status_data)
+                logger.debug(f"FINISHED TASK {func.__qualname__}")
             except Exception as e:
                 task_status_data["status"] = TaskStatus.failed
                 task_status_data["traceback"] = str(e)

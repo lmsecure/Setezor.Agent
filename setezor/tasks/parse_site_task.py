@@ -3,12 +3,15 @@ import base64
 from setezor.settings import get_platform_name
 from setezor.tasks import BaseJob
 from setezor.tools.importer import add_permissions, load_class_from_path
-
+import json
 
 class ParseSiteTask(BaseJob):
 
     module_name = 'site_parser'
-    description = ''
+    description = json.dumps({
+        "name": "WEB GRABBER",
+        "description": ""
+    })
     payload: dict = {'platform_name': get_platform_name()}
     SiteParser = load_class_from_path(module_name, "parser.py", "SiteParser")
 

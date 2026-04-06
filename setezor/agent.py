@@ -68,9 +68,14 @@ def temp_ssl_files(cert_pem, key_pem):
 @click.option('-p', '--port', default=16662, type=int, show_default=True, help='Spy port')
 @click.option('-h', '--host', default="0.0.0.0", type=str, show_default=True, help='Spy host')
 @click.option('-nat', '--nat', type=str, default=None, show_default=True, help='NAT')
+@click.option('-d', '--debug', is_flag=True, default=False, show_default=True, help='DEBUG log level')
 @click.pass_context
-def run_app(ctx, nat: str, port: int, host: str):
+def run_app(ctx, nat: str, port: int, host: str, debug: bool):
     """Command starts web application"""
+    from setezor.settings import LOG_LEVEL
+    if debug:
+        LOG_LEVEL = "DEBUG"
+        LOGGING_CONFIG["loggers"]["app"]["level"] = LOG_LEVEL
     from setezor.spy import Spy
     import setezor.managers.task_manager
     import setezor.managers.task_crawler

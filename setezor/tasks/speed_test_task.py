@@ -1,11 +1,15 @@
 import os
 from setezor.tasks.base_job import BaseJob
 from setezor.tools.importer import load_class_from_path
-
+import json
 
 class SpeedTestClientTask(BaseJob):
 
     module_name = "speed_test"
+    description = json.dumps({
+        "name": "SPEED TEST", 
+        "description": ""
+    })
     Client = load_class_from_path(module_name, "speed_test.py", "Client")
 
     @classmethod

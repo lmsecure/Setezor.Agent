@@ -1,6 +1,6 @@
 import os
 import signal
-
+import json
 import psutil
 
 from setezor.tools.importer import load_class_from_path
@@ -13,6 +13,10 @@ from concurrent.futures import ProcessPoolExecutor
 class MasscanScanTask(BaseJob):
 
     module_name = "masscan"
+    description = json.dumps({
+        "name": "MASSCAN", 
+        "description": ""
+    })
     MasscanScanner = load_class_from_path(module_name, "executor.py", "MasscanScanner")
 
     @classmethod

@@ -5,14 +5,16 @@ from pydantic.networks import IPv4Address, IPv4Network
 
 
 class TaskStatus:
-    started = "STARTED"
-    finished = "FINISHED"
-    failed = "FAILED"
     created = "CREATED"
+    registered = "REGISTERED"
+    processing_on_agent = "PROCESSING_ON_AGENT"
+    finished_on_agent = "FINISHED_ON_AGENT"
+    processing_on_server = "PROCESSING_ON_SERVER"
     pre_canceled = "PRE_CANCELED"
     canceled = "CANCELED"
-    registered = "REGISTERED"
-    stopped = "STOPPED"
+    soft_stopped = "SOFTSTOPPED"
+    finished = "FINISHED"
+    failed = "FAILED"
 
 
 class TaskPayload(BaseModel):

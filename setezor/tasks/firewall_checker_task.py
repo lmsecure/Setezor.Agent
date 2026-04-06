@@ -1,12 +1,16 @@
 import os
 from setezor.tools.importer import load_class_from_path
 from .base_job import BaseJob
-
+import json
 
 
 class FirewallCheckerSenderTask(BaseJob):
 
     module_name = "firewall_checker"
+    description = json.dumps({
+        "name": "FIREWALL CHECKER", 
+        "description": ""
+    })
     Sender = load_class_from_path(module_name, "sender.py", "Sender")
 
     @classmethod

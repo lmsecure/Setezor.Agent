@@ -7,11 +7,16 @@ import itertools
 from setezor.settings import PATH_PREFIX
 from setezor.tasks.base_job import BaseJob
 from setezor.tools.importer import load_class_from_path
+import json
 
 
 class SdFindTask(BaseJob):
 
     module_name = "sd_search"
+    description = json.dumps({
+        "name": "SUBDOMAINS BRUTE",
+        "description": ""
+    })
     Domain_brute = load_class_from_path(module_name, "domain_brute.py", "Domain_brute")
     CrtSh = load_class_from_path(module_name, "crtsh.py", "CrtSh")
 

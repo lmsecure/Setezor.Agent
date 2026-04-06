@@ -3,7 +3,6 @@ from setezor.tasks.base_job import BaseJob
 from .dns_task import DNSTask
 from .cert_task import CertTask
 from .domain_task import SdFindTask
-from .whois_task import WhoisTask
 from .whois_shdws_task import WhoisShdwsTask
 from .rdap_task import RdapTask
 from .nmap_scan_task import NmapScanTask

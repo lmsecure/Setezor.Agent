@@ -5,12 +5,16 @@ import base64
 from setezor.settings import PATH_PREFIX
 from setezor.tasks.base_job import BaseJob
 from setezor.tools.importer import load_class_from_path
-
+import json
 
 
 class ScapySniffTask(BaseJob):
 
     module_name = "scapy"
+    description = json.dumps({
+        "name": "SCAPY", 
+        "description": ""
+    })
     ScapySniffer = load_class_from_path(module_name, "scapy_sniffer.py", "ScapySniffer")
 
 

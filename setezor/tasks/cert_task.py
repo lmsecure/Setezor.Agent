@@ -3,11 +3,16 @@ from setezor.settings import PATH_PREFIX
 from setezor.tasks.base_job import BaseJob
 from setezor.tools.importer import load_class_from_path
 from setezor.tools.url_parser import parse_url
+import json
 
 
 class CertTask(BaseJob):
 
     module_name = "cert"
+    description = json.dumps({
+        "name": "TLS/SSL CERT", 
+        "description": ""
+    })
     CertInfo = load_class_from_path(module_name, "crt4.py", "CertInfo")
 
     @classmethod

