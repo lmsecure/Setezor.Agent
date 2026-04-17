@@ -1,0 +1,7 @@
+# requirements-test.txt
+-r requirements.txt
+
+# Test-only dependencies
+pytest
+pytest-asyncio
+httpx

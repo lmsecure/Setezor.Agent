@@ -63,7 +63,7 @@ class NmapScanTask(BaseJob):
         if PLATFORM == "Windows":
             self.interface = self.ip
             self.extra_args = ["-S"]
-        self.extra_args.extend([self.interface, targetIP, targetPorts])
+        self.extra_args.extend([self.interface, targetIP] + targetPorts.split())
         if traceroute: self.extra_args.append("--traceroute")
         if serviceVersion: self.extra_args.append("-sV")
         if stealthScan: self.extra_args.append("-O")
